@@ -1,6 +1,6 @@
 $FtpSiteName = 'FTPSite'
 $FtpRootPath = 'c:\inetpub\ftproot'
-$FtpUserName = 'mariova'
+$FtpUserName = 'user1'
 $ftpUserPath = 'c:\inetpub\wwwroot'
 
 # Create FTP Folder
