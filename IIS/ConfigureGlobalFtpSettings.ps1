@@ -1,3 +1,4 @@
+#requires -Version 3 -Modules WebAdministration -RunAsAdministrator
 <#
 .Synopsis
    This script configures some global FTP Settings.
@@ -19,7 +20,7 @@ Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.
 # Set FTP Authorization Rule
 Write-Verbose -Message "---------- FTP Authorization Rules ----------"
 Write-Verbose -Message "Creating new FTP Authorization rule. Read access for all users."
-Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.ftpServer/security/authorization" -name "." -value @{accessType='Allow';users='*';permissions='Read,Write'}
+Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.ftpServer/security/authorization" -name "." -value @{accessType='Allow';users='*';permissions='Read'}
 
 # Configure Global FTP SSL Settings
 Write-Verbose -Message "---------- FTP SSL Settings ----------"
