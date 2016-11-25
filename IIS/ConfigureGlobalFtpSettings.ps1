@@ -11,29 +11,32 @@ Param ()
 
 # Configure authorization providers
 Write-Verbose -Message "---------- Authentication Providers ----------"
-Write-Verbose "Setting AuthenticationProvider basicAuthentication to enabled"
+Write-Verbose "Setting AuthenticationProvider basicAuthentication to enabled."
 Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.applicationHost/sites/siteDefaults/ftpServer/security/authentication/basicAuthentication" -name "enabled" -value "True"
 Write-Verbose "Setting AuthenticationProvider anonymousAuthentication to disabled"
 Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.applicationHost/sites/siteDefaults/ftpServer/security/authentication/anonymousAuthentication" -name "enabled" -value "False"
 
 # Set FTP Authorization Rule
 Write-Verbose -Message "---------- FTP Authorization Rules ----------"
-Write-Verbose -Message "Creating new FTP Authorization rule."
+Write-Verbose -Message "Creating new FTP Authorization rule. Read access for all users."
 Add-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.ftpServer/security/authorization" -name "." -value @{accessType='Allow';users='*';permissions='Read,Write'}
 
 # Configure Global FTP SSL Settings
 Write-Verbose -Message "---------- FTP SSL Settings ----------"
+Write-Verbose -Message "Changing SSl settings from required to allow."
 Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.applicationHost/sites/siteDefaults/ftpServer/security/ssl" -name "serverCertStoreName" -value "WebHosting"
 Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.applicationHost/sites/siteDefaults/ftpServer/security/ssl" -name "controlChannelPolicy" -value "SslAllow"
 Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.applicationHost/sites/siteDefaults/ftpServer/security/ssl" -name "dataChannelPolicy" -value "SslAllow"
 
 # Configure Global FTP Firewall Support
 Write-Verbose -Message "---------- FTP Firewall Support ----------"
+Write-verbose -Message "Setting Datachannel port to 6000-7000."
 Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.ftpServer/firewallSupport" -name "lowDataChannelPort" -value 6000
 Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.ftpServer/firewallSupport" -name "highDataChannelPort" -value 7000
 
 # Configure Global FTP Logging
 Write-Verbose -Message "---------- FTP Logging ----------"
+write-verbose -Message "Configuring logging settings. Daily logfile per site."
 Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.ftpServer/log" -name "centralLogFileMode" -value "Site"
 Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.ftpServer/log/centralLogFile" -name "logExtFileFlags" -value "Date,Time,ClientIP,UserName,SiteName,ComputerName,ServerIP,Method,UriStem,FtpStatus,Win32Status,BytesSent,BytesRecv,TimeTaken,ServerPort,Host,FtpSubStatus,Session,FullPath,Info,ClientPort,PhysicalPath"
 Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.ftpServer/log/centralLogFile" -name "directory" -value "C:\inetpub\logs\logfiles\"
@@ -42,4 +45,5 @@ Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.
 
 # Configure Global FTP User Isolation
 Write-Verbose -Message "---------- FTP User Isolation ----------"
+Write-Verbose -Message "Enabling FTP User Isolation."
 Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.applicationHost/sites/siteDefaults/ftpServer/userIsolation" -name "mode" -value "IsolateAllDirectories"
