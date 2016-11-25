@@ -38,14 +38,17 @@ if ($result.Success) {
     }
     if ($result.ExitCode -ne 'NoChangeNeeded') { 
         Write-Verbose -Message "The following modules are installed:"
-        Write-Verbose -Message "$($result.FeatureResult | Select DisplayName, Success)"
+        foreach ($feature in $Result.FeatureResult) {
+            Write-Verbose -Message "  $($feature.DisplayName)"
+        }
     }
 }
 $result = $null
 
 if ($IncludeAdditionalWebFeatures) {
+    Write-Verbose -Message '---------- Additional Webserver Feature ----------'
     # Install Additional Web Server Features
-    $AdditionalWebFeatures = "Web-Static-Content","Web-Http-Errors","Web-Http-Redirect","Web-Stat-Compression","Web-ISAPI-Ext","Web-ISAPI-Filter","Web-Http-Logging","Web-Request-Monitor","Web-Basic-Auth","Web-Filtering","Web-IP-Security","Web-Performance","Web-Asp","Web-Asp-Net","Web-Asp-Net45","Web-Mgmt-Console","Web-Ftp-Service"
+    $AdditionalWebFeatures = "Web-Http-Redirect","Web-Stat-Compression","Web-ISAPI-Ext","Web-ISAPI-Filter","Web-Http-Logging","Web-Request-Monitor","Web-Basic-Auth","Web-Filtering","Web-IP-Security","Web-Performance","Web-Asp","Web-Asp-Net","Web-Asp-Net45","Web-Mgmt-Console","Web-Ftp-Service"
     Write-Verbose -Message "Installing additional webserver role features"
     $result = Install-WindowsFeature -name $AdditionalWebFeatures
     if ($result.Success) {
@@ -55,14 +58,18 @@ if ($IncludeAdditionalWebFeatures) {
         }
         if ($result.ExitCode -ne 'NoChangeNeeded') { 
             Write-Verbose -Message "The following modules are installed:"
-            Write-Verbose -Message "$($result.FeatureResult | Select DisplayName, Success)"
+            foreach ($feature in $Result.FeatureResult) {
+                Write-Verbose -Message "  $($feature.DisplayName)"
+            }
         }
     }
 } else {
     Write-Verbose -Message "Skipping installing additional Webserver role features"
 }
+$result = $null
 
 # Enable Built-In Firewall Rule for HTTP-IN for all profiles
+Write-Verbose -Message '---------- Firewall Rules ----------'
 Write-Verbose -Message 'Enabling HTTP-IN firewall role for all profiles'
 Set-NetFirewallRule -Name 'IIS-WebServerRole-HTTP-In-TCP' -Profile 'Domain','Public','Private' -Enabled 'True'
 Write-Verbose -Message 'Disabling HTTPS-IN firewall role for all profiles'
