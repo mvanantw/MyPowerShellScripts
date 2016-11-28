@@ -156,6 +156,7 @@ Function Set-MvaWebsiteDirectoryPermissions {
 }
 
 ## Create Directories
+Write-Verbose -Message "---------- Content Folders ----------"
 Write-Verbose "Creating folder for content and logs."
 if (test-path -Path "$RootDir\$UserName") {
     Write-Verbose -Message "Folder $RootDir\$UserName already exists. Skipping this step."
@@ -200,14 +201,17 @@ if (test-path -Path "$RootDir\$UserName\wwwroot\App_Data") {
 }
 
 ##Set Directory permissions
+Write-Verbose -Message "---------- Folder Permissions ----------"
 Set-MvaWebsiteDirectoryPermissions -Username $UserName -RootDir $RootDir -verbose
 Start-Sleep -Seconds 1
 
 ##Make new user for the website
+Write-Verbose -Message "---------- Website User ----------"
 New-MvaWebSiteUser -Username $UserName -Password $Password -Group w3users -verbose	
 Start-Sleep -Seconds 1
 
 ##Make new website
+Write-Verbose -Message "---------- Website & Application Pool ----------"
 New-MvaWebSiteAndAppPool -WebsiteName $UserName -Hostheader $Hostheader -RootDir $RootDir -ErrorAction Stop
 Start-Sleep -Seconds 1
 
