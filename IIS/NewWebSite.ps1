@@ -1,11 +1,25 @@
 #requires -Version 3 -Modules localaccounts, WebAdministration -RunAsAdministrator
 <#
 .Synopsis
-   This script create a new FTP site on the server.
+    This script creates a new website in IIS.
 .DESCRIPTION
-   This script create a new FTP site on the server.
+    This script creates a new website in IIS. To do this it creates:
+    - The directory structure
+    - A user account for the customer
+    - A decicated application pool
+    - And the website with hostheader
+
+    The script accepts 4 parameters.
+    - [string]Username
+        This is the username that a customer can use for publishing. It is also used to name the directory, website ID and application pool.
+    - [string]Password
+        This is the password for the customer account.
+    - [string]HostHeader
+        The FQDN that will be used for the website.
+    - [string]RootDir
+        This the directory were all websites are. Like c:\inetpub
 .EXAMPLE
-   NewFtpSite.ps1
+   NewWebSite.ps1 -UserName "Customer1" -Password "P@ssw0rd" -HostHeader "www.website.nl" -RootDir "d:\data"
 #>
 [CmdletBinding()]
 Param(
@@ -23,7 +37,55 @@ Param(
 )
 $VerbosePreference = "Continue"
 
-Function New-MvaWebSiteUser{
+<#
+.Synopsis
+   Add an ACL to a directory.
+.DESCRIPTION
+   Add an ACL to a directory.
+.EXAMPLE
+   Set-MvaAcl -Path "d:\data\Customer1 -UserName "Customer1" -Permission "FullControl"
+#>
+function Set-MvaAcl
+{
+    [CmdletBinding()]
+    Param
+    (
+        # Param1 help description
+        [Parameter(Mandatory=$true,
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=0)]
+        [string]$Path,
+
+        # Param2 help description
+        [Parameter(Mandatory=$true,
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=1)]
+        [string]$UserName,
+
+        [Parameter(Mandatory=$true,
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=2)]
+        [ValidateSet("FullControl","Modify","Read","ReadAndExecute","Write")]
+        [string]$Permission
+    )
+
+    Begin
+    {
+    }
+    Process
+    {
+        $acl = get-acl $path
+        Write-Verbose "Setting $Permission file permission for user $username on folder $path."
+        $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("$Username","$Permission", "ContainerInherit, ObjectInherit", "None", "Allow")))
+        Set-Acl -Path $Path -AclObject $acl
+    }
+    End
+    {
+        $acl = $null
+    }
+}
+
+Function New-MvaWebSiteUser {
     [CmdletBinding()]        
     param (
         [string]$Username=$(throw "Username missing"),
@@ -104,106 +166,72 @@ Function Set-MvaWebsiteDirectoryPermissions {
         [string]$RootDir=$(throw "Parameter WebsiteName is missing")
     )
     
-    $w3user = "IIS AppPool\"+$Username+"AppPool"
+    $AppPoolIdentity = "IIS AppPool\"+$Username+"AppPool"
 
     ##Set file permissions
     ##Root dir
-    $acl = get-acl "$RootDir\$Username"
-    Write-Verbose "Setting FullControl file permission for user $username on folder $RootDir\$Username."
-    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("$Username","FullControl", "ContainerInherit, ObjectInherit", "None", "Allow")))
-    Write-Verbose "Setting ReadAndExecute file permission for user $w3user on folder $RootDir\$Username."
-    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("$w3user","ReadAndExecute", "ContainerInherit, ObjectInherit", "None", "Allow")))
-    set-acl "$RootDir\$Username" $acl
-    
+    Set-MvaAcl -Path "$RootDir\$Username" -UserName $Username -Permission "FullControl"
+    Set-MvaAcl -Path "$RootDir\$Username" -UserName $AppPoolIdentity -Permission "ReadAndExecute"
+
     ##Access-DB dir
-    $acl = get-acl "$RootDir\$Username\Access-DB"
-    Write-Verbose "Setting FullControl file permission for user $username on folder $RootDir\$Username\access-db."
-    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("$Username","FullControl", "ContainerInherit, ObjectInherit", "None", "Allow")))
-    Write-Verbose "Setting FullControl file permission for user $w3user on folder $RootDir\$Username\access-db."
-    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("$w3user","FullControl", "ContainerInherit, ObjectInherit", "None", "Allow")))
-    set-acl "$RootDir\$Username\Access-DB" $acl
+    Set-MvaAcl -Path "$RootDir\$Username\Access-DB" -UserName $Username -Permission "FullControl"
+    Set-MvaAcl -Path "$RootDir\$Username\Access-DB" -UserName $AppPoolIdentity -Permission "FullControl"
 
     ##Logfiles dir
-    $acl = get-acl "$RootDir\$Username\Logs\LogFiles"
-    Write-Verbose "Setting FullControl file permission for user $username on folder $RootDir\$Username\Logs\LogFiles."
-    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("$Username","FullControl", "ContainerInherit, ObjectInherit", "None", "Allow")))
-    set-acl "$RootDir\$Username\Logs\LogFiles" $acl
-
+    Set-MvaAcl -Path "$RootDir\$Username\Logs\LogFiles" -UserName $Username -Permission "FullControl"
+    
     ## FailedReqLogFiles
-    $acl = get-acl "$RootDir\$Username\Logs\FailedReqLogFiles"
-    Write-Verbose "Setting FullControl file permission for user $username on folder $RootDir\$Username\Logs\FailedReqLogFiles."
-    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("$Username","FullControl", "ContainerInherit, ObjectInherit", "None", "Allow")))
-    Write-Verbose "Setting FullControl file permission for user $w3user on folder $RootDir\$Username\Logs\FailedReqLogFiles."
-    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("$w3user","FullControl", "ContainerInherit, ObjectInherit", "None", "Allow")))
-    set-acl "$RootDir\$Username\Logs\FailedReqLogFiles" $acl
+    Set-MvaAcl -Path "$RootDir\$Username\Logs\FailedReqLogFiles" -UserName $Username -Permission "FullControl"
+    Set-MvaAcl -Path "$RootDir\$Username\Logs\FailedReqLogFiles" -UserName $AppPoolIdentity -Permission "FullControl"
     
     ##wwwroot dir
-    $acl = get-acl "$RootDir\$Username\wwwroot"
-    Write-Verbose "Setting FullControl file permission for user $username on folder $RootDir\$Username\wwwroot."
-    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("$Username","FullControl", "ContainerInherit, ObjectInherit", "None", "Allow")))
-    Write-Verbose "Setting ReadAndExecute file permission for user $w3user on folder $RootDir\$Username\wwwroot."
-    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("$w3user","ReadAndExecute", "ContainerInherit, ObjectInherit", "None", "Allow")))
-    set-acl "$RootDir\$Username\wwwroot" $acl
-    
+    Set-MvaAcl -Path "$RootDir\$Username\wwwroot" -UserName $Username -Permission FullControl
+    Set-MvaAcl -Path "$RootDir\$Username\Logs\FailedReqLogFiles" -UserName $AppPoolIdentity -Permission "ReadAndExecute"
+        
     ##wwwroot/app_data
-    $acl = get-acl "$RootDir\$Username\wwwroot\app_data"
-    Write-Verbose "Setting FullControl file permission for user $username on folder $RootDir\$Username\wwwroot\app_data."
-    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("$Username","FullControl", "ContainerInherit, ObjectInherit", "None", "Allow")))
-    Write-Verbose "Setting FullControl file permission for user $w3user on folder $RootDir\$Username\wwwroot\app_data."
-    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("$w3user","FullControl", "ContainerInherit, ObjectInherit", "None", "Allow")))
-    set-acl "$RootDir\$Username\wwwroot\app_data" $acl    
-    
+    Set-MvaAcl -Path "$RootDir\$Username\wwwroot\app_data" -UserName $Username -Permission FullControl
+    Set-MvaAcl -Path "$RootDir\$Username\wwwroot\app_data" -UserName $AppPoolIdentity -Permission FullControl
+}
+
+function New-MvaWebFolder {
+    [CmdletBinding()]
+    Param
+    (
+        # Param1 help description
+        [Parameter(Mandatory=$true,
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=0)]
+        [string]$Path
+    )
+
+    Begin
+    {
+    }
+    Process
+    {
+        if (test-path -Path $Path) {
+            Write-Verbose -Message "Folder $Path already exists. Skipping this step."
+        } else {
+            Write-Verbose -Message "Creating folder $Path."
+            New-Item -Path $Path -ItemType Directory
+        }
+    }
+    End
+    {
+    }
 }
 
 ## Create Directories
 Write-Verbose -Message "---------- Content Folders ----------"
 Write-Verbose "Creating folder for content and logs."
-if (test-path -Path "$RootDir\$UserName") {
-    Write-Verbose -Message "Folder $RootDir\$UserName already exists. Skipping this step."
-} else {
-    New-Item -Path "$RootDir\$UserName" -ItemType Directory
-}
+New-MvaWebFolder -Path "$RootDir\$UserName"
+New-MvaWebFolder -Path "$RootDir\$UserName\Access-DB"
+New-MvaWebFolder -Path "$RootDir\$UserName\Logs"
+New-MvaWebFolder -Path "$RootDir\$UserName\Logs\LogFiles"
+New-MvaWebFolder -Path "$RootDir\$UserName\Logs\FailedReqLogFiles"
+New-MvaWebFolder -Path "$RootDir\$UserName\wwwroot"
+New-MvaWebFolder -Path "$RootDir\$UserName\wwwroot\App_Data"
 
-if (test-path -Path "$RootDir\$UserName\Access-DB") {
-    Write-Verbose -Message "Folder $RootDir\$UserName\access-DB already exists. Skipping this step."
-} else {
-    New-Item -Path "$RootDir\$UserName\Access-DB" -ItemType Directory
-}
-
-if (test-path -Path "$RootDir\$UserName\Logs") {
-    Write-Verbose -Message "Folder $RootDir\$UserName\Logs already exists. Skipping this step."
-} else {
-    New-Item -Path "$RootDir\$UserName\Logs" -ItemType Directory
-}
-
-if (test-path -Path "$RootDir\$UserName\logs\LogFiles") {
-    Write-Verbose -Message "Folder $RootDir\$UserName\Logs\LogFiles already exists. Skipping this step."
-} else {
-    New-Item -Path "$RootDir\$UserName\logs\LogFiles" -ItemType Directory
-}
-
-if (test-path -Path "$RootDir\$UserName\logs\FailedReqLogFiles") {
-    Write-Verbose -Message "Folder $RootDir\$UserName\Logs\FailedReqLogFiles already exists. Skipping this step."
-} else {
-    New-Item -Path "$RootDir\$UserName\logs\FailedReqLogFiles" -ItemType Directory
-}
-
-if (test-path -Path "$RootDir\$UserName\wwwroot") {
-    Write-Verbose -Message "Folder $RootDir\$UserName\wwwroot already exists. Skipping this step."
-} else {
-    New-Item -Path "$RootDir\$UserName\wwwroot" -ItemType Directory
-}
-
-if (test-path -Path "$RootDir\$UserName\wwwroot\App_Data") {
-    Write-Verbose -Message "Folder $RootDir\$UserName\wwwroot\App_Data already exists. Skipping this step."
-} else {
-    New-Item -Path "$RootDir\$UserName\wwwroot\App_Data" -ItemType Directory
-}
-
-##Set Directory permissions
-Write-Verbose -Message "---------- Folder Permissions ----------"
-Set-MvaWebsiteDirectoryPermissions -Username $UserName -RootDir $RootDir -verbose
-Start-Sleep -Seconds 1
 
 ##Make new user for the website
 Write-Verbose -Message "---------- Website User ----------"
@@ -213,6 +241,11 @@ Start-Sleep -Seconds 1
 ##Make new website
 Write-Verbose -Message "---------- Website & Application Pool ----------"
 New-MvaWebSiteAndAppPool -WebsiteName $UserName -Hostheader $Hostheader -RootDir $RootDir -ErrorAction Stop
+Start-Sleep -Seconds 1
+
+##Set Directory permissions
+Write-Verbose -Message "---------- Folder Permissions ----------"
+Set-MvaWebsiteDirectoryPermissions -Username $UserName -RootDir $RootDir -verbose
 Start-Sleep -Seconds 1
 
 Write-Verbose "Finished creating website $UserName with binding $Hostheader!"        
