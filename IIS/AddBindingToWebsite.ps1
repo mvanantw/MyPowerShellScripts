@@ -34,8 +34,6 @@
 #>
 [CmdletBinding(SupportsShouldProcess=$true,
                ConfirmImpact='High')]
-[Alias()]
-[OutputType([int])]
 Param
 (
     [Parameter(Mandatory=$true,
@@ -73,22 +71,22 @@ Begin
 }
 Process
 {
-    foreach ($binding in $HostHeader)
+    Foreach ($Binding in $HostHeader)
     {
-        try 
+        Try 
         {
             New-WebBinding -Name $name -Port $Port -IPAddress $IPAddress -HostHeader $Binding -ErrorAction Stop
             Write-Host "INFO: Added binding $Binding, $IPAddress, $Port to website $name."
         }
-        catch [System.Management.Automation.ItemNotFoundException]
+        Catch [System.Management.Automation.ItemNotFoundException]
         {
             Write-Host "ERROR: There is no website with name $name!" -ForegroundColor Red
         }
-        catch [System.Runtime.InteropServices.COMException]
+        Catch [System.Runtime.InteropServices.COMException]
         {
             Write-Host "ERROR: Binding $binding already exists!"  -ForegroundColor Red
         }
-        catch [System.Management.Automation.ParameterBindingException]
+        Catch [System.Management.Automation.ParameterBindingException]
         {
             Write-Host "ERROR: Unable to bind parameter!" -ForegroundColor Red
             Write-Host "ERROR: $_" -ForegroundColor Red
