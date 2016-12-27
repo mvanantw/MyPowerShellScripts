@@ -10,30 +10,41 @@
    It is not possible to do an SSL binding.
 
 .PARAMETER
-   Name
-.PARAMETER
-   HostHeader
+   Name [string]
+
+   This is name of the website you want to add one or more extra bindings to. For example Default Web Site.
 
 .PARAMETER
-   IPAddresss
+   HostHeader [string[]]
+
+   This is one or more domain names you want to add to a website. The domain name can be www.test.com or test.com or blog.test.com.
+   It is possible to add multiple domain names at the same time as long as these domain names will be bound to the same website, ipaddress and port.
 
 .PARAMETER
-   Port
+   IPAddresss [string]
+
+   This is the ipaddress you want to bind a domain name too. This parameter is optional. If you don't supply an ipaddress the default value '*' will
+   be used. So the domain name will be bound to any ipaddress on the server.
+
+.PARAMETER
+   Port [int]
+
+   This is an optional parameter with a default value of '80'. If you want to use another port you can supply it here.
 
 .EXAMPLE
    Add 2 new hostheaders to the "Default Web Site" for any IP Address on default port 80.
 
-   PS> AddBindingToWebsite.ps1 -Name "Default Web Site" -HostHeader "www.test.nl","test.nl"
+   PS> AddBindingToWebsite.ps1 -Name "Default Web Site" -HostHeader "www.test.com","test.com"
 
 .EXAMPLE
    Add a new hostheader to the "Default Web Site" for a specifc IP Address on default port 80.
 
-   PS> AddBindingToWebsite.ps1 -Name "Default Web Site" -HostHeader "www.test.nl" -IPAddress "127.0.0.1"
+   PS> AddBindingToWebsite.ps1 -Name "Default Web Site" -HostHeader "www.test.com" -IPAddress "127.0.0.1"
 
 .EXAMPLE
    Add a new hostheader to the "Default Web Site" for any IP Address on port 8080.
 
-   PS> AddBindingToWebsite.ps1 -Name "Default Web Site" -HostHeader "www.test.nl","test.nl" -port 8080
+   PS> AddBindingToWebsite.ps1 -Name "Default Web Site" -HostHeader "www.test.com","test.nl" -port 8080
 
 .EXAMPLE
    Another example of how to use this cmdlet
