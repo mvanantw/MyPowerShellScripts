@@ -230,29 +230,33 @@ function New-MvaSslWebsiteBinding
             $cert = Get-ChildItem -Path Cert:\LocalMachine\$CertStore | where-Object {$_.subject -like "*$CertSubject*"}
             if ($cert -ne $null)
             {
-                Try 
-                {
-                    New-WebBinding -name $name -Protocol https -HostHeader $hostheader -Port $port -SslFlags 1 -ErrorAction Stop
-                    Write-Host "INFO: Added SSL binding $hostheader, $Port to website $name."
-                    New-Item -Path "IIS:\SSLBindings\0.0.0.0!$port!$hostheader" -Value $cert -SSLFlags 1 -ErrorAction Stop
-                    Write-Host "INFO: Created new SSL Binding: IIS:\SSLBindings\0.0.0.0!$port!$hostheader"
-                }
-                Catch [System.Management.Automation.ItemNotFoundException]
-                {
-                    Write-Host "ERROR: There is no website with name $name!" -ForegroundColor Red
-                }
-                Catch [System.Runtime.InteropServices.COMException]
-                {
-                    Write-Host "ERROR: Binding $hostheader already exists!"  -ForegroundColor Red
-                }
-                Catch [System.Management.Automation.ParameterBindingException]
-                {
-                    Write-Host "ERROR: Unable to bind parameter!" -ForegroundColor Red
-                    Write-Host "ERROR: $_" -ForegroundColor Red
-                }
-                Catch 
-                {
-                    $_
+                if ($cert.Count -eq 1) {                
+                    Try 
+                    {
+                        New-WebBinding -name $name -Protocol https -HostHeader $hostheader -Port $port -SslFlags 1 -ErrorAction Stop
+                        Write-Host "INFO: Added SSL binding $hostheader, $Port to website $name."
+                        New-Item -Path "IIS:\SSLBindings\0.0.0.0!$port!$hostheader" -Value $cert -SSLFlags 1 -ErrorAction Stop
+                        Write-Host "INFO: Created new SSL Binding: IIS:\SSLBindings\0.0.0.0!$port!$hostheader"
+                    }
+                    Catch [System.Management.Automation.ItemNotFoundException]
+                    {
+                        Write-Host "ERROR: There is no website with name $name!" -ForegroundColor Red
+                    }
+                    Catch [System.Runtime.InteropServices.COMException]
+                    {
+                        Write-Host "ERROR: Binding $hostheader already exists!"  -ForegroundColor Red
+                    }
+                    Catch [System.Management.Automation.ParameterBindingException]
+                    {
+                        Write-Host "ERROR: Unable to bind parameter!" -ForegroundColor Red
+                        Write-Host "ERROR: $_" -ForegroundColor Red
+                    }
+                    Catch 
+                    {
+                        $_
+                    }
+                } else {
+                    Write-Host "ERROR: Multiple certificates found for subject $CertSubject!" -ForegroundColor Red
                 }    
             } else {
                 Write-Host "ERROR: Cannot find a certificate for subject $CertSubject!" -ForegroundColor Red
