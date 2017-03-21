@@ -106,6 +106,51 @@ Function New-MvaWebSiteUser {
     }
 } 
 
+<#
+.SYNOPSIS
+    Set the ASP option enableParentPaths to true or false
+.PARAMETER Enable
+    Switch parameter that enables parentpaths
+.PARAMETER Disable
+    Switch parameter that disables parentpaths   
+.EXAMPLE
+    Example of how to use this cmdlet
+.EXAMPLE
+    Another example of how to use this cmdlet
+#>
+function Set-MvaIisAspParenPaths {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]
+        $websitename,
+        [Parameter(Mandatory=$true,
+                    ParameterSetName="enable")]
+        [switch]
+        $enable,
+        [Parameter(Mandatory=$true,
+                    ParameterSetName="disable")]
+        [switch]
+        $disable
+    )
+    
+    process {
+        try {
+            if ($enable.IsPresent) {
+                Write-Verbose "Enabling parent paths."
+                Set-WebConfigurationProperty -Filter '/system.webServer/asp' -Name enableParentPaths -Value true -PSPath IIS:\ -Location $WebsiteName    
+            }
+            if ($disable.IsPresent) {
+                Write-Verbose "Disabling parent paths."
+                Set-WebConfigurationProperty -Filter '/system.webServer/asp' -Name enableParentPaths -Value false -PSPath IIS:\ -Location $WebsiteName    
+            }        
+        }
+        catch {
+            Write-Error -Message "$($_.Exception.Message) - Line Number: $($_.InvocationInfo.ScriptLineNumber)"
+        }
+    }
+}
+
 Function New-MvaWebSiteAndAppPool {
     [CmdletBinding()]
     param (
@@ -143,9 +188,8 @@ Function New-MvaWebSiteAndAppPool {
         Set-WebConfigurationProperty -Filter '/system.webServer/security/authentication/basicAuthentication' -Name enabled -Value true -PSPath IIS:\ -Location $WebsiteName
 
         #asp enable parentpaths
-        Write-Verbose "Enabling parent paths."
-        Set-WebConfigurationProperty -Filter '/system.webServer/asp' -Name enableParentPaths -Value true -PSPath IIS:\ -Location $WebsiteName
-
+        Set-MvaIisAspParenPaths -websitename $WebsiteName -enable -Verbose
+        
         #set log file directory
         Write-Verbose "Setting log directory to $RootDir\$WebsiteName\Logs\LogFiles"
         Set-ItemProperty "IIS:\Sites\$WebsiteName" -name logfile.directory -value "$RootDir\$WebsiteName\Logs\LogFiles"
