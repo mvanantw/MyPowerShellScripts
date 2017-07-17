@@ -31,7 +31,7 @@ Param(
 
     [Parameter(Mandatory=$True)]
     [string]$HostHeader,
-	
+
     [Parameter(Mandatory=$false)]
     [string]$RootDir='C:\Inetpub'
 )
@@ -86,25 +86,26 @@ function Set-MvaAcl
 }
 
 Function New-MvaWebSiteUser {
-    [CmdletBinding()]        
+    [CmdletBinding()]
     param (
         [string]$Username=$(throw "Username missing"),
         [string]$Password=$(throw "Password missing"),
         [string]$Group="Users"
     )
-    
+
     $Result = Get-Localuser -Name $Username -ErrorAction SilentlyContinue
     if ($Result -eq $null) {
-        write-Verbose "Creating user $($user.UserName)"
-        New-LocalUser -Name $UserName -Password $Password  -CannotChangePassword -PasswordNeverExpires
+        write-Verbose "Creating user $UserName"
+        $spwd = ConvertTo-SecureString -String $Password -AsPlainText -force
+        New-LocalUser -Name $Username -Password $spwd -AccountNeverExpires -PasswordNeverExpires -UserMayNotChangePassword
 
         Write-Verbose "Add $Username to group $Group"
         $GroupMember = Get-LocalUser -Name $UserName
-        Add-LocalGroupMember -Name $Group -Members $GroupMember
+        Add-LocalGroupMember -Group $Group -Member $GroupMember
     } else {
         Write-Verbose -Message "User $username already exists. Skipping this step."
     }
-} 
+}
 
 <#
 .SYNOPSIS
@@ -112,7 +113,7 @@ Function New-MvaWebSiteUser {
 .PARAMETER Enable
     Switch parameter that enables parentpaths
 .PARAMETER Disable
-    Switch parameter that disables parentpaths   
+    Switch parameter that disables parentpaths
 .EXAMPLE
     Example of how to use this cmdlet
 .EXAMPLE
@@ -133,17 +134,17 @@ function Set-MvaIisAspParenPaths {
         [switch]
         $disable
     )
-    
+
     process {
         try {
             if ($enable.IsPresent) {
                 Write-Verbose "Enabling parent paths."
-                Set-WebConfigurationProperty -Filter '/system.webServer/asp' -Name enableParentPaths -Value true -PSPath IIS:\ -Location $WebsiteName    
+                Set-WebConfigurationProperty -Filter '/system.webServer/asp' -Name enableParentPaths -Value true -PSPath IIS:\ -Location $WebsiteName
             }
             if ($disable.IsPresent) {
                 Write-Verbose "Disabling parent paths."
-                Set-WebConfigurationProperty -Filter '/system.webServer/asp' -Name enableParentPaths -Value false -PSPath IIS:\ -Location $WebsiteName    
-            }        
+                Set-WebConfigurationProperty -Filter '/system.webServer/asp' -Name enableParentPaths -Value false -PSPath IIS:\ -Location $WebsiteName
+            }
         }
         catch {
             Write-Error -Message "$($_.Exception.Message) - Line Number: $($_.InvocationInfo.ScriptLineNumber)"
@@ -158,7 +159,7 @@ Function New-MvaWebSiteAndAppPool {
         [string]$Hostheader=$(throw "Parameter WebsiteName is missing"),
         [string]$RootDir=$(throw "Parameter WebsiteName is missing")
     )
-    
+
     ##Make new apppool
     $AppPoolName = $WebsiteName + "AppPool"
     $Result = Get-ChildItem IIS:\\apppools | Where-Object -Property name -eq $AppPoolName
@@ -169,7 +170,7 @@ Function New-MvaWebSiteAndAppPool {
         Write-Verbose -Message "There is already an application pool with the name $AppPoolName. Skipping this step."
     }
     $Result = $null
-        
+
     ##Make new website
     $Result = Get-ChildItem IIS:\\sites | Where-Object -Property Name -eq $WebsiteName
     if ($result -eq $null) {
@@ -182,14 +183,14 @@ Function New-MvaWebSiteAndAppPool {
         Set-WebConfigurationProperty -Filter '/system.webServer/security/authentication/anonymousAuthentication' -Name enabled -Value true -PSPath IIS:\ -Location $WebsiteName
         Write-Verbose "Setting anymous user to application pool identity."
         Set-WebConfigurationProperty -Filter '/system.webServer/security/authentication/anonymousAuthentication' -Name username -Value '' -PSPath IIS:\ -Location $WebsiteName
-        
+
         #enable basic authentication
         Write-Verbose "Enabling basic authentication."
         Set-WebConfigurationProperty -Filter '/system.webServer/security/authentication/basicAuthentication' -Name enabled -Value true -PSPath IIS:\ -Location $WebsiteName
 
         #asp enable parentpaths
         Set-MvaIisAspParenPaths -websitename $WebsiteName -enable -Verbose
-        
+
         #set log file directory
         Write-Verbose "Setting log directory to $RootDir\$WebsiteName\Logs\LogFiles"
         Set-ItemProperty "IIS:\Sites\$WebsiteName" -name logfile.directory -value "$RootDir\$WebsiteName\Logs\LogFiles"
@@ -200,7 +201,7 @@ Function New-MvaWebSiteAndAppPool {
         Set-WebConfigurationProperty -pspath 'MACHINE/WEBROOT/APPHOST'  -filter "system.applicationHost/sites/site[@name='$WebsiteName']/traceFailedRequestsLogging" -name "directory" -value "$RootDir\$WebsiteName\logs\FailedReqLogFiles"
     } else {
         Write-Error -Message "There is already a website with the name $websitename"
-    }    
+    }
 }
 
 Function Set-MvaWebsiteDirectoryPermissions {
@@ -209,7 +210,7 @@ Function Set-MvaWebsiteDirectoryPermissions {
         [string]$Username=$(throw "Username missing"),
         [string]$RootDir=$(throw "Parameter WebsiteName is missing")
     )
-    
+
     $AppPoolIdentity = "IIS AppPool\"+$Username+"AppPool"
 
     ##Set file permissions
@@ -223,15 +224,15 @@ Function Set-MvaWebsiteDirectoryPermissions {
 
     ##Logfiles dir
     Set-MvaAcl -Path "$RootDir\$Username\Logs\LogFiles" -UserName $Username -Permission "FullControl"
-    
+
     ## FailedReqLogFiles
     Set-MvaAcl -Path "$RootDir\$Username\Logs\FailedReqLogFiles" -UserName $Username -Permission "FullControl"
     Set-MvaAcl -Path "$RootDir\$Username\Logs\FailedReqLogFiles" -UserName $AppPoolIdentity -Permission "FullControl"
-    
+
     ##wwwroot dir
     Set-MvaAcl -Path "$RootDir\$Username\wwwroot" -UserName $Username -Permission FullControl
     Set-MvaAcl -Path "$RootDir\$Username\Logs\FailedReqLogFiles" -UserName $AppPoolIdentity -Permission "ReadAndExecute"
-        
+
     ##wwwroot/app_data
     Set-MvaAcl -Path "$RootDir\$Username\wwwroot\app_data" -UserName $Username -Permission FullControl
     Set-MvaAcl -Path "$RootDir\$Username\wwwroot\app_data" -UserName $AppPoolIdentity -Permission FullControl
@@ -279,7 +280,7 @@ New-MvaWebFolder -Path "$RootDir\$UserName\wwwroot\App_Data"
 
 ##Make new user for the website
 Write-Verbose -Message "---------- Website User ----------"
-New-MvaWebSiteUser -Username $UserName -Password $Password -Group w3users -verbose	
+New-MvaWebSiteUser -Username $UserName -Password $Password -Group w3users -verbose
 Start-Sleep -Seconds 1
 
 ##Make new website
@@ -292,6 +293,6 @@ Write-Verbose -Message "---------- Folder Permissions ----------"
 Set-MvaWebsiteDirectoryPermissions -Username $UserName -RootDir $RootDir -verbose
 Start-Sleep -Seconds 1
 
-Write-Verbose "Finished creating website $UserName with binding $Hostheader!"        
+Write-Verbose "Finished creating website $UserName with binding $Hostheader!"
 
 
