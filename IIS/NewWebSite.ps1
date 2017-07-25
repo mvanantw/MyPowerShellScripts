@@ -180,13 +180,14 @@ Function New-MvaWebSiteAndAppPool {
         ##Set webconfiguration setting
         #enable anonymous authentication
         Write-Verbose "Enabling anynomous authentication."
-        Set-WebConfigurationProperty -Filter '/system.webServer/security/authentication/anonymousAuthentication' -Name enabled -Value true -PSPath IIS:\ -Location $WebsiteName
+        Set-WebConfigurationProperty -Filter '/system.webServer/security/authentication/anonymousAuthentication' -Name enabled -Value true -pspath 'MACHINE/WEBROOT/APPHOST' -Location $WebsiteName
+
         Write-Verbose "Setting anymous user to application pool identity."
-        Set-WebConfigurationProperty -Filter '/system.webServer/security/authentication/anonymousAuthentication' -Name username -Value '' -PSPath IIS:\ -Location $WebsiteName
+        Set-WebConfigurationProperty -Filter '/system.webServer/security/authentication/anonymousAuthentication' -Name username -Value '' -pspath 'MACHINE/WEBROOT/APPHOST' -Location $WebsiteName
 
         #enable basic authentication
         Write-Verbose "Enabling basic authentication."
-        Set-WebConfigurationProperty -Filter '/system.webServer/security/authentication/basicAuthentication' -Name enabled -Value true -PSPath IIS:\ -Location $WebsiteName
+        Set-WebConfigurationProperty -Filter '/system.webServer/security/authentication/basicAuthentication' -Name enabled -Value true -pspath 'MACHINE/WEBROOT/APPHOST' -Location $WebsiteName
 
         #asp enable parentpaths
         Set-MvaIisAspParenPaths -websitename $WebsiteName -enable -Verbose
