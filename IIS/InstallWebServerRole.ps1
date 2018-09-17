@@ -2,8 +2,8 @@
 .Synopsis
    This script install the webserver role on a windows server.
 .DESCRIPTION
-   This script install the webserver role on a windows server with its defaukt settings. You can also install additional webserver role features. 
-   After installing it enables the firewall for HTTP and disables the firewall rule foor HTTPS. 
+   This script install the webserver role on a windows server with its defaukt settings. You can also install additional webserver role features.
+   After installing it enables the firewall for HTTP and disables the firewall rule foor HTTPS.
 .EXAMPLE
    This example installs just the default webserver role.
 
@@ -34,9 +34,9 @@ $result = Install-WindowsFeature -Name 'web-server'
 if ($result.Success) {
     Write-Verbose -Message "Installation of the webserver role was succesful."
     if ($result.ExitCode -eq 'SuccessRestartRequired') {
-        Write-Verbose -Message "To complete the installation you need to restart the server." 
+        Write-Verbose -Message "To complete the installation you need to restart the server."
     }
-    if ($result.ExitCode -ne 'NoChangeNeeded') { 
+    if ($result.ExitCode -ne 'NoChangeNeeded') {
         Write-Verbose -Message "The following modules are installed:"
         foreach ($feature in $Result.FeatureResult) {
             Write-Verbose -Message "  $($feature.DisplayName)"
@@ -54,9 +54,9 @@ if ($IncludeAdditionalWebFeatures) {
     if ($result.Success) {
         Write-Verbose -Message "Installation of the additional webserver role features was succesful."
         if ($result.ExitCode -eq 'SuccessRestartRequired') {
-            Write-Verbose -Message "To complete the installation you need to restart the server." 
+            Write-Verbose -Message "To complete the installation you need to restart the server."
         }
-        if ($result.ExitCode -ne 'NoChangeNeeded') { 
+        if ($result.ExitCode -ne 'NoChangeNeeded') {
             Write-Verbose -Message "The following modules are installed:"
             foreach ($feature in $Result.FeatureResult) {
                 Write-Verbose -Message "  $($feature.DisplayName)"
@@ -73,4 +73,4 @@ Write-Verbose -Message '---------- Firewall Rules ----------'
 Write-Verbose -Message 'Enabling HTTP-IN firewall role for all profiles'
 Set-NetFirewallRule -Name 'IIS-WebServerRole-HTTP-In-TCP' -Profile 'Domain','Public','Private' -Enabled 'True'
 Write-Verbose -Message 'Disabling HTTPS-IN firewall role for all profiles'
-Set-NetFirewallRule -Name 'IIS-WebServerRole-HTTPS-In-TCP' -Profile 'Domain','Public','Private' -Enabled 'False'
+Set-NetFirewallRule -Name 'IIS-WebServerRole-HTTPS-In-TCP' -Profile 'Domain','Public','Private' -Enabled 'True'

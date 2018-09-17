@@ -156,8 +156,8 @@ Function New-MvaWebSiteAndAppPool {
     [CmdletBinding()]
     param (
         [string]$WebsiteName=$(throw "Parameter WebsiteName is missing"),
-        [string]$Hostheader=$(throw "Parameter WebsiteName is missing"),
-        [string]$RootDir=$(throw "Parameter WebsiteName is missing")
+        [string]$Hostheader=$(throw "Parameter Hostheader is missing"),
+        [string]$RootDir=$(throw "Parameter Rootdir is missing")
     )
 
     ##Make new apppool
@@ -174,8 +174,14 @@ Function New-MvaWebSiteAndAppPool {
     ##Make new website
     $Result = Get-ChildItem IIS:\\sites | Where-Object -Property Name -eq $WebsiteName
     if ($result -eq $null) {
+        $PhysicalPath = "$RootDir\$WebsiteName\wwwroot"
+        if ($PhysicalPath.Contains('\\')) {
+            $PhysicalPath = $PhysicalPath.Replace('\\', '\')
+            Write-Verbose -Message "Replaced double backslashes in the physical path with a single backslash."
+        }
+
         Write-Verbose "Creating website $WebsiteName with binding $HostHeader running in application pool $AppPoolName."
-        New-WebSite -Name $WebsiteName -Port 80 -HostHeader $Hostheader -PhysicalPath "$RootDir\$WebsiteName\wwwroot" -ApplicationPool $AppPoolName -ErrorAction Stop
+        New-WebSite -Name $WebsiteName -Port 80 -HostHeader $Hostheader -PhysicalPath $PhysicalPath -ApplicationPool $AppPoolName -ErrorAction Stop
 
         ##Set webconfiguration setting
         #enable anonymous authentication
