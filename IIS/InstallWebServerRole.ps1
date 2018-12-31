@@ -72,5 +72,5 @@ $result = $null
 Write-Verbose -Message '---------- Firewall Rules ----------'
 Write-Verbose -Message 'Enabling HTTP-IN firewall role for all profiles'
 Set-NetFirewallRule -Name 'IIS-WebServerRole-HTTP-In-TCP' -Profile 'Domain','Public','Private' -Enabled 'True'
-Write-Verbose -Message 'Disabling HTTPS-IN firewall role for all profiles'
+Write-Verbose -Message 'Enabling HTTPS-IN firewall role for all profiles'
 Set-NetFirewallRule -Name 'IIS-WebServerRole-HTTPS-In-TCP' -Profile 'Domain','Public','Private' -Enabled 'True'
